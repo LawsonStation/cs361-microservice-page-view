@@ -22,14 +22,8 @@ def get_db_connection():
 with app.app_context():
     db.create_all()
 
-# Landing page
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-# Increment page count and return
-@app.route('/view/<int:item_id>', methods=['POST'])
-def increment_view(item_id):
+# Helper function to create or update an item
+def create_or_update_item(item_id):
     try:
         page_view = PageView.query.filter_by(item_id=item_id).first()
         if not page_view:
@@ -38,59 +32,63 @@ def increment_view(item_id):
         else:
             page_view.count += 1
         db.session.commit()
-        return jsonify({"item_id": item_id, "count": page_view.count}), 200
+        return {"item_id": item_id, "count": page_view.count}, 200
     except IntegrityError:
         db.session.rollback()
-        return jsonify({"error": "Could not process the request."}), 500
+        return {"error": "Could not process the request."}, 500
 
+# Landing page
+@app.route('/')
+def home():
+    page_views = PageView.query.all()  # Retrieve all records from the PageView table
+    return render_template('index.html', page_views=page_views)
+
+# Increment page count and return
+@app.route('/view/<int:item_id>', methods=['POST'])
+def increment_view(item_id):
+    response, status_code = create_or_update_item(item_id)
+    return jsonify(response), status_code
+
+# Get view count and auto-create missing items
 @app.route('/view/<int:item_id>', methods=['GET'])
 def get_view_count(item_id):
     page_view = PageView.query.filter_by(item_id=item_id).first()
     if not page_view:
-        return jsonify({"error": "Item not found"}), 404
-    return jsonify({"item_id": item_id, "count": page_view.count}), 200
+        # If no record exists, create one with an initial count of 1
+        response, status_code = create_or_update_item(item_id)
+        return jsonify(response), status_code
+    else:
+        # Increment count on every page view (even if the page is refreshed)
+        page_view.count += 1
+        db.session.commit()
+        return jsonify({"item_id": item_id, "count": page_view.count}), 200
 
 # Deletion route
 @app.route('/delete/<int:item_id>', methods=['POST'])
 def delete_item(item_id):
     try:
-        # Attempt to delete the page view record for the item
         page_view = PageView.query.filter_by(item_id=item_id).first()
         if page_view:
-            db.session.delete(page_view)  # Delete the page view record
+            db.session.delete(page_view)
             db.session.commit()
             return jsonify({"message": f"Item {item_id} deleted successfully."}), 200
         else:
             return jsonify({"error": f"Item {item_id} not found."}), 404
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction in case of error
+        db.session.rollback()
         return jsonify({"error": f"Error deleting item: {e}"}), 500
 
-
-# Add the reset route
-# @app.route('/reset', methods=['POST'])
-# def reset_database():
-#     try:
-#         # Delete all records from each table (including page_views)
-#         PageView.query.delete()  # Deletes all entries from the page_views table
-#         db.session.commit()  # Commit changes to the database
-#         return 'Database has been reset successfully.', 200
-#     except Exception as e:
-#         return f'Error resetting database: {e}', 500
-
+# Reset database route
 @app.route('/reset', methods=['POST', 'GET'])
 def reset_database():
     if request.method == 'POST':
         try:
-            # Delete all records from the page_views table
             PageView.query.delete()
             db.session.commit()
-            # Return a success message with a "Back to Home" button
-            return render_template('reset_success.html')  # Assuming reset_success.html displays the message and button
+            return render_template('reset_success.html')
         except Exception as e:
             return f'Error resetting database: {e}', 500
-    return render_template('reset_confirmation.html')  # Render reset confirmation page if GET request
-
+    return render_template('reset_confirmation.html')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

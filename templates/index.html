@@ -4,44 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Microservice Running</title>
-    <!-- <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        header {
-            background-color: #007bff;
-            color: #fff;
-            padding: 20px 0;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 2.5em;
-        }
-        section {
-            padding: 20px;
-        }
-        section p {
-            font-size: 1.2em;
-        }
-        footer {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #555;
-        }
-    </style> -->
     <script>
         function confirmReset(event) {
             if (!confirm('Are you sure you want to reset the database? This will delete all records.')) {
-                event.preventDefault();  // Prevent form submission if not confirmed
+                event.preventDefault();
             }
         }
     </script>
-
 </head>
 <body>
     <header>
@@ -49,21 +18,31 @@
     </header>
     <p>Microservice is running!</p>
     <br>
-        <!-- Reset Database Button -->
-        <form action="{{ url_for('reset_database') }}" method="POST" onsubmit="confirmReset(event)">
-            <button type="submit">Reset Database</button>
-        </form>
+    <!-- Reset Database Button -->
+    <form action="{{ url_for('reset_database') }}" method="POST" onsubmit="confirmReset(event)">
+        <button type="submit">Reset Database</button>
+    </form>
     
-    <!-- <section>
-        <p>Welcome! This microservice is up and running.</p>
-        <p>Use the following endpoints:</p>
-        <ul>
-            <li><strong>POST /view/&lt;item_id&gt;</strong>: Increment page views for a specific item ID.</li>
-            <li><strong>GET /view/&lt;item_id&gt;</strong>: Retrieve the current view count for a specific item ID.</li>
-        </ul>
-    </section>
-    <footer>
-        <p>Developed by Kevin &mdash; CS361 Microservice</p>
-    </footer> -->
+    <h2>Database Records</h2>
+    {% if page_views %}
+    <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Item ID</th>
+                <th>View Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for page_view in page_views %}
+            <tr>
+                <td>{{ page_view.item_id }}</td>
+                <td>{{ page_view.count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No records found in the database.</p>
+    {% endif %}
 </body>
 </html>
