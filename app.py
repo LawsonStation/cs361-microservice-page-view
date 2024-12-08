@@ -56,11 +56,20 @@ def get_view_count(item_id):
     if not page_view:
         # If no record exists, create one with an initial count of 1
         response, status_code = create_or_update_item(item_id)
+
+        # Log the requested item and its count
+        print("Requested item:", response)
+
         return jsonify(response), status_code
     else:
         # Increment count on every page view (even if the page is refreshed)
         page_view.count += 1
         db.session.commit()
+        
+        response = {"item_id": item_id, "count": page_view.count}
+        # Log the requested item and its count
+        print("Requested item:", response)
+
         return jsonify({"item_id": item_id, "count": page_view.count}), 200
 
 # Deletion route
